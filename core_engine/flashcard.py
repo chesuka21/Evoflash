@@ -26,12 +26,15 @@ class Flashcard(BaseModel):
 
     @property
     def area(self) -> str:
-        """Área de estudio = ruta de subcarpetas del APUNTE ORIGINAL (hasta 2 niveles).
+        """Área de estudio = carpeta(s) del APUNTE ORIGINAL (sin el archivo .md).
         Ej: 'Cursos/Google cybersecurity' en vez de solo 'Cursos'.
         Fallback: tema si no hay fuente registrada."""
         if not self.fuente:
             return self.tema or "General"
         parts = re.split(r"[/\\]", self.fuente.replace("\\\\", "/"))
+        # Quitar el archivo .md final si existe
+        if parts and parts[-1].lower().endswith(".md"):
+            parts = parts[:-1]
         parts = [p for p in parts if p]
         if not parts:
             return self.tema or "General"
