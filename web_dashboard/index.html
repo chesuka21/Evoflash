@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚡ EvoFlash</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: #0d1117; color: #c9d1d9; min-height: 100vh; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 24px 16px; }
+
+  header { text-align: center; padding: 20px 0; }
+  header h1 { margin: 0; font-size: 28px; }
+  header h1 span { color: #a371f7; }
+  header .sub { color: #8b949e; font-size: 13px; }
+
+  .toolbar { display: flex; gap: 10px; justify-content: center; margin: 16px 0; flex-wrap: wrap; }
+  .toolbar select, .toolbar button {
+    background: #161b22; border: 1px solid #30363d; color: #c9d1d9;
+    padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 14px;
+  }
+  .toolbar button:hover { border-color: #58a6ff; }
+  .toolbar .xp { background: #1f6feb33; border-color: #1f6feb; color: #58a6ff; font-weight: bold; }
+
+  /* ── Tarjeta ── */
+  .card {
+    background: #161b22; border: 1px solid #30363d; border-radius: 12px;
+    padding: 24px; margin: 20px 0; min-height: 120px;
+  }
+  .card .meta { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .badge {
+    font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 600;
+  }
+  .badge.nivel1 { background: #238636aa; }
+  .badge.nivel2 { background: #d29922aa; }
+  .badge.nivel3 { background: #a371f7aa; }
+  .badge.nivel4 { background: #f85149aa; }
+  .badge.boss { background: #f85149; color: #fff; border: 2px solid #ff7b72; }
+  .badge.practice { background: #1f6feb; color: #fff; }
+  .badge.area { background: #30363d; color: #8b949e; }
+
+  .pregunta { font-size: 18px; line-height: 1.5; white-space: pre-wrap; }
+
+  textarea {
+    width: 100%; min-height: 90px; margin-top: 14px; padding: 12px;
+    background: #0d1117; border: 1px solid #30363d; border-radius: 8px;
+    color: #c9d1d9; font-size: 15px; font-family: inherit; resize: vertical;
+  }
+  textarea:focus { outline: none; border-color: #58a6ff; }
+
+  .acciones { display: flex; gap: 10px; margin-top: 12px; }
+  .btn {
+    padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer;
+    font-size: 15px; font-weight: 600; transition: 0.15s;
+  }
+  .btn-primario { background: #238636; color: #fff; }
+  .btn-primario:hover { background: #2ea043; }
+  .btn-primario:disabled { background: #30363d; cursor: wait; }
+  .btn-secundario { background: #30363d; color: #c9d1d9; }
+
+  /* ── Feedback ── */
+  .feedback { padding: 16px; border-radius: 10px; margin-top: 16px; white-space: pre-wrap; line-height: 1.5; }
+  .feedback.ok { background: #23863622; border: 1px solid #238636; }
+  .feedback.mal { background: #f8514922; border: 1px solid #f85149; }
+  .feedback .xp { font-size: 20px; font-weight: bold; }
+  .feedback.ok .xp { color: #3fb950; }
+  .feedback.mal .xp { color: #f85149; }
+  .feedback .evolucion { color: #a371f7; font-weight: bold; margin-top: 8px; }
+
+  .sugerencias { margin-top: 14px; }
+  .sugerencias .sug {
+    background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+    padding: 10px 14px; margin: 8px 0; display: flex; align-items: center; gap: 10px;
+  }
+  .sug input[type=checkbox] { width: 18px; height: 18px; accent-color: #3fb950; }
+  .sug .concepto { font-weight: bold; color: #58a6ff; }
+
+  .lista-pendientes { margin-top: 24px; }
+  .p-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 14px; background: #161b22; border: 1px solid #30363d;
+    border-radius: 8px; margin: 6px 0; cursor: pointer; transition: 0.15s;
+  }
+  .p-item:hover { border-color: #58a6ff; }
+  .p-item.done { opacity: 0.4; text-decoration: line-through; }
+  .p-item .left { display: flex; gap: 10px; align-items: center; }
+  .p-item .n { color: #8b949e; font-size: 12px; width: 24px; }
+
+  .progreso { height: 6px; background: #30363d; border-radius: 3px; margin: 10px 0; overflow: hidden; }
+  .progreso .fill { height: 100%; background: linear-gradient(90deg, #238636, #3fb950); transition: width 0.3s; }
+
+  .empty { text-align: center; color: #8b949e; padding: 60px 20px; }
+  .spinner { text-align: center; padding: 20px; color: #58a6ff; }
+  .spinner::after { content: '⏳'; font-size: 24px; animation: spin 1s infinite; display: inline-block; }
+  @keyframes spin { 100% { transform: rotate(360deg); } }
+
+  /* ── Stats modal ── */
+  .modal-bg {
+    position: fixed; inset: 0; background: #000a; display: none;
+    align-items: center; justify-content: center; z-index: 100;
+  }
+  .modal-bg.on { display: flex; }
+  .modal {
+    background: #161b22; border: 1px solid #30363d; border-radius: 12px;
+    padding: 24px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto;
+  }
+  .modal h2 { margin-top: 0; color: #58a6ff; }
+  .modal table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .modal td, .modal th { padding: 6px 8px; border-bottom: 1px solid #30363d; text-align: left; }
+  .modal .debil { color: #f85149; font-weight: bold; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>⚡ <span>EvoFlash</span></h1>
+    <div class="sub">Sistema de Aprendizaje Evolutivo</div>
+  </header>
+
+  <div class="toolbar">
+    <select id="sel-area"><option value="">📂 Todas las áreas</option></select>
+    <button onclick="cargarPendientes()">🔄 Recargar</button>
+    <button onclick="abrirStats()">📊 Stats</button>
+    <span class="xp" id="xp-hoy">⭐ 0 XP hoy</span>
+  </div>
+
+  <div class="progreso"><div class="fill" id="prog-fill" style="width:0%"></div></div>
+  <div id="prog-label" style="text-align:center; color:#8b949e; font-size:12px;"></div>
+
+  <div id="zona-juego"></div>
+
+  <div class="lista-pendientes" id="lista"></div>
+</div>
+
+<div class="modal-bg" id="modal-stats" onclick="if(event.target===this) this.classList.remove('on')">
+  <div class="modal" id="modal-contenido"></div>
+</div>
+
+<script>
+let pendientes = [];
+let idxActual = 0;
+let xpHoy = 0;
+let _sugsActual = [];
+let _areaActual = '';
+
+const $ = (id) => document.getElementById(id);
+
+async function api(path, body) {
+  const opts = body === undefined
+    ? {}
+    : { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) };
+  const r = await fetch(path, opts);
+  return r.json();
+}
+
+async function init() {
+  const data = await api('/api/pending');
+  const sel = $('sel-area');
+  sel.innerHTML = '<option value="">📂 Todas las áreas</option>' +
+    data.areas.map(a => `<option value="${a}">${a}</option>`).join('');
+  sel.onchange = () => { _areaActual = sel.value; cargarPendientes(); };
+  cargarPendientes();
+}
+
+async function cargarPendientes() {
+  const data = await api('/api/pending?area=' + encodeURIComponent(_areaActual));
+  pendientes = data.cards;
+  idxActual = 0;
+  xpHoy = 0;
+  actualizarXP();
+  mostrarTarjeta();
+  dibujarLista();
+}
+
+function actualizarXP() { $('xp-hoy').textContent = `⭐ ${xpHoy} XP hoy`; }
+
+function prog() {
+  const total = pendientes.length;
+  const n = total ? Math.round((idxActual / total) * 100) : 0;
+  $('prog-fill').style.width = n + '%';
+  $('prog-label').textContent = total ? `${idxActual}/${total} tarjetas` : '';
+}
+
+function dibujarLista() {
+  $('lista').innerHTML = '<h3 style="color:#8b949e">📋 Pendientes</h3>' +
+    pendientes.map((c, i) => `
+      <div class="p-item ${i < idxActual ? 'done' : ''}" onclick="saltar(${i})">
+        <div class="left">
+          <span class="n">${i+1}</span>
+          <span class="badge nivel${c.nivel}">N${c.nivel}</span>
+          <span>${c.concepto}</span>
+          ${c.es_practice ? '<span class="badge practice">🛠️</span>' : ''}
+          ${c.es_boss ? '<span class="badge boss">🚨 BOSS</span>' : ''}
+        </div>
+        <span style="color:#8b949e;font-size:11px">${c.area.split('/').pop()}</span>
+      </div>`).join('');
+}
+
+function saltar(i) { idxActual = i; mostrarTarjeta(); dibujarLista(); }
+
+function mostrarTarjeta() {
+  prog();
+  const zona = $('zona-juego');
+  _sugsActual = [];
+  if (idxActual >= pendientes.length) {
+    zona.innerHTML = `<div class="empty">
+      <h2>🏆 ¡Sesión completa!</h2>
+      <p>Ganaste ${xpHoy} XP hoy.</p>
+      <p><button class="btn btn-primario" onclick="cargarPendientes()">🔄 Buscar más pendientes</button></p>
+    </div>`;
+    return;
+  }
+  const c = pendientes[idxActual];
+  const tipoBadge = c.es_boss ? '<span class="badge boss">🚨 BOSS BATTLE</span>'
+                  : c.es_practice ? '<span class="badge practice">🛠️ PRÁCTICA</span>'
+                  : '';
+  zona.innerHTML = `
+    <div class="card">
+      <div class="meta">
+        <span class="badge nivel${c.nivel}">Nivel ${c.nivel}</span>
+        <span class="badge area">${c.area}</span>
+        ${tipoBadge}
+      </div>
+      <div class="pregunta">${escapar(c.pregunta)}</div>
+      ${c.es_practice && c.practice_cmd ? `<div style="margin-top:10px; padding:10px; background:#0d1117; border-radius:8px; font-family:monospace; color:#58a6ff">💻 ${escapar(c.practice_cmd)}</div>` : ''}
+      <textarea id="resp" placeholder="Escribe tu respuesta aquí... (argumenta con detalle)" autofocus></textarea>
+      <div class="acciones">
+        <button class="btn btn-primario" onclick="responder()">📨 Responder</button>
+        <button class="btn btn-secundario" onclick="saltar(idxActual+1)">⏭️ Saltar</button>
+      </div>
+    </div>
+    <div id="feedback"></div>`;
+  $('resp').focus();
+  $('resp').addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key === 'Enter') responder();
+  });
+}
+
+function escapar(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function responder() {
+  const texto = $('resp').value.trim();
+  if (!texto) return;
+  const c = pendientes[idxActual];
+  $('feedback').innerHTML = '<div class="spinner">La IA está evaluando tu respuesta...</div>';
+  document.querySelector('.btn-primario').disabled = true;
+
+  try {
+    const r = await api('/api/answer', { path: c.path, respuesta: texto });
+    if (!r.ok) throw new Error(r.error || 'error');
+    mostrarFeedback(r, c);
+  } catch (e) {
+    $('feedback').innerHTML = `<div class="feedback mal">
+      <b>⚠️ Error temporal del LLM</b><br>${escapar(String(e.message || e))}<br>
+      <small>A veces Gemini se satura (503). Espera 30s y reintenta.</small>
+      <br><button class="btn btn-secundario" onclick="responder()">🔄 Reintentar</button>
+    </div>`;
+  }
+}
+
+function mostrarFeedback(r, c) {
+  const xp = r.xp || 0;
+  xpHoy += xp;
+  actualizarXP();
+
+  let html = `<div class="feedback ${r.correcta ? 'ok' : 'mal'}">
+    <div class="xp">${r.correcta ? '✅ +' + xp + ' XP' : '❌ Incorrecto'}</div>
+    <div>${escapar(r.feedback)}</div>`;
+  if (!r.correcta && r.esperado) {
+    html += `<div style="margin-top:8px;color:#8b949e"><b>Esperado:</b> ${escapar(r.esperado)}</div>`;
+  }
+  if (r.boss_derrotado) {
+    html += `<div class="evolucion">👑 ¡BOSS DERROTADO! Dominaste el Nivel 4.</div>`;
+  } else if (r.evolucion) {
+    html += `<div class="evolucion">🔥 ¡EVOLUCIÓN! → Nivel ${r.evolucion.nuevo_nivel}</div>`;
+  }
+  html += `
+    <div style="margin-top:12px">
+      <button class="btn btn-primario" onclick="siguiente()">➡️ Siguiente</button>
+    </div>`;
+
+  if (r.sugerencias && r.sugerencias.length) {
+    _sugsActual = r.sugerencias;
+    html += `<div class="sugerencias"><b style="color:#3fb950">💡 Sugerencias del grafo:</b>` +
+      r.sugerencias.map((s, i) => `
+        <div class="sug">
+          <input type="checkbox" id="sug-${i}">
+          <div><span class="concepto">${escapar(s.concepto)}</span>
+          <div style="font-size:12px;color:#8b949e">${escapar(s.pregunta)}</div></div>
+        </div>`).join('') +
+      `<button class="btn btn-secundario" onclick="plantarElegidas()">🌱 Plantar seleccionadas</button>
+      </div>`;
+  }
+  html += `</div>`;
+  $('feedback').innerHTML = html;
+}
+
+async function plantarElegidas() {
+  const elegidas = _sugsActual.filter((_, i) => $('sug-' + i).checked);
+  if (!elegidas.length) return;
+  const c = pendientes[idxActual];
+  const r = await api('/api/plantar', { area: c.tema, sugerencias: elegidas });
+  if (r.ok) {
+    alert(`🌱 Plantadas: ${r.plantadas.length} tarjetas nuevas`);
+  }
+}
+
+function siguiente() {
+  idxActual++;
+  mostrarTarjeta();
+  dibujarLista();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function abrirStats() {
+  const d = await api('/api/stats');
+  const filas = Object.entries(d.areas).sort((a, b) => b[1].total - a[1].total).map(([area, s]) => {
+    const dominio = s.aciertos / Math.max(s.total, 1);
+    const cls = dominio < 0.3 ? 'debil' : '';
+    return `<tr class="${cls}">
+      <td>${escapar(area)}</td><td>${s.total}</td>
+      <td>${s.n1}/${s.n2}/${s.n3}/${s.n4}</td>
+      <td>${s.aciertos}</td>
+      <td>${dominio < 0.3 ? '🔴 Débil' : dominio < 0.7 ? '🟡 Medio' : '🟢 Fuerte'}</td>
+    </tr>`;
+  }).join('');
+  $('modal-contenido').innerHTML = `
+    <h2>📊 Tu progreso</h2>
+    <p>${d.total} tarjetas totales en el vault</p>
+    <table>
+      <tr><th>Área</th><th>Cards</th><th>N1/N2/N3/N4</th><th>Aciertos</th><th>Estado</th></tr>
+      ${filas}
+    </table>
+    <p style="color:#8b949e;font-size:12px;margin-top:14px">
+      Repasa primero las áreas marcadas 🔴 Débil para crecer más rápido.
+    </p>`;
+  $('modal-stats').classList.add('on');
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚡ EvoFlash — Skill Tree</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+  body { margin: 0; overflow: hidden; background: #0d1117; color: #c9d1d9; font-family: 'Segoe UI', system-ui, sans-serif; }
+  #app { width: 100vw; height: 100vh; position: relative; }
+  svg { width: 100%; height: 100%; display: block; }
+
+  .link { stroke-opacity: 0.4; stroke-width: 1; pointer-events: none; }
+  .link[data-tipo="sugerencia"] { stroke: #3fb950; stroke-dasharray: 3,3; }
+
+  .node { cursor: pointer; }
+  .node:hover { filter: brightness(1.4); }
+  .node circle { transition: r 0.15s; }
+  .node:hover circle { r: 14px !important; }
+
+  .node[data-nivel="1"] circle { fill: #238636; }
+  .node[data-nivel="2"] circle { fill: #d29922; }
+  .node[data-nivel="3"] circle { fill: #a371f7; }
+  .node[data-nivel="4"] circle { fill: #f85149; }
+  .node[data-boss="true"] circle { fill: #ff7b72; stroke: #ff4444; stroke-width: 3; }
+  .node[data-practice="true"] circle { fill: #58a6ff; }
+
+  /* ── Panel Info ── */
+  #info {
+    position: absolute; top: 80px; left: 20px; z-index: 200;
+    background: #161b22; border: 1px solid #30363d; border-left: 4px solid #58a6ff;
+    border-radius: 10px; padding: 14px 16px; min-width: 270px; max-width: 340px;
+    font-size: 12px; display: none; opacity: 0; transition: opacity 0.2s;
+  }
+  #info.visible { display: block; opacity: 1; }
+  #info h3 { margin: 0 0 6px; color: #58a6ff; font-size: 14px; cursor: pointer; }
+  #info h3:hover { text-decoration: underline; }
+  #info .stat { margin: 4px 0; }
+  #info .level { color: #d29922; }
+  #info .boss { color: #f85149; }
+  #info .practice { color: #58a6ff; }
+  #info .area { font-style: italic; color: #8b949e; }
+  #info .preview { color: #79c0ff; font-size: 11px; font-style: italic; }
+  #info .close-btn {
+    position: absolute; top: 6px; right: 8px;
+    background: none; border: none; color: #8b949e; cursor: pointer;
+  }
+  #info .actions { display: flex; gap: 6px; margin-top: 12px; }
+  #info .actions button {
+    background: #21262d; border: 1px solid #30363d; color: #c9d1d9;
+    padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 11px;
+  }
+  #info .actions button:hover { background: #30363d; }
+
+  /* ── Selector ── */
+  #selector-area {
+    position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+    background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+    padding: 8px 14px; z-index: 100;
+  }
+  #selector-area label { color: #d29922; font-weight: bold; margin-right: 8px; }
+  #selector-area select {
+    background: #0d1117; color: #c9d1d9;
+    border: 1px solid #30563d; border-radius: 4px; padding: 4px 8px;
+  }
+
+  /* ── Leyenda ── */
+  #legend {
+    position: absolute; bottom: 16px; left: 16px;
+    background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+    padding: 10px; font-size: 11px;
+  }
+  #legend .dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+
+  /* ── Botones Inferiores ── */
+  #ia-actions {
+    position: absolute; bottom: 16px; right: 16px;
+    display: flex; flex-direction: column; gap: 8px; z-index: 100;
+  }
+  #ia-actions button {
+    background: #161b22; border: 1px solid #30363d; color: #c9d1d9;
+    padding: 9px 14px; border-radius: 8px; cursor: pointer; font-size: 12px;
+  }
+  #ia-actions button:hover { background: #21262d; border-color: #58a6ff; }
+
+  .lvl-label {
+    fill: #8b949e; font-size: 10px; text-anchor: middle;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <svg id="graph"></svg>
+  <div id="selector-area">
+    <label>📂 Área:</label>
+    <select id="area-select"></select>
+  </div>
+  <div id="info">
+    <button class="close-btn" onclick="closeInfo()">✕</button>
+    <h3 id="i-nombre"></h3>
+    <div class="stat area" id="i-area"></div>
+    <div class="stat level" id="i-nivel"></div>
+    <div class="stat" id="i-aciertos"></div>
+    <div class="stat" id="i-tipo"></div>
+    <div class="preview" id="i-preview"></div>
+    <div class="src" id="i-fuente"></div>
+    <div class="actions">
+      <button onclick="abrirObsidianLink()">📖 Abrir en Obsidian</button>
+    </div>
+  </div>
+  <div id="legend">
+    <div><span class="dot" style="background:#238636"></span>N1 — Teoría</div>
+    <div><span class="dot" style="background:#d29922"></span>N2 — Práctica</div>
+    <div><span class="dot" style="background:#a371f7"></span>N3 — Troubleshooting</div>
+    <div><span class="dot" style="background:#f85149"></span>N4 — Avanzado</div>
+    <div><span class="dot" style="background:#58a6ff"></span>🛠️ Práctica (comando)</div>
+    <div><span class="dot" style="background:#ff7b72;border:1px solid #ff4444"></span>🚨 BOSS BATTLE</div>
+  </div>
+  <div id="ia-actions">
+    <button onclick="window.print()">📄 PDF del área</button>
+    <button onclick="abrirModoExamen()">🚀 Examen N1→N4</button>
+    <button onclick="verStats()">📊 Stats</button>
+  </div>
+</div>
+
+<script>
+let allCards = [];
+
+async function init() {
+  const data = await fetch('data.json').then(r => r.json());
+  allCards = data.cards;
+  const areas = [...new Set(allCards.map(c => c.area))].sort();
+  const sel = document.getElementById('area-select');
+  sel.innerHTML = '<option value="">Todas las áreas (' + allCards.length + ')</option>' +
+    areas.map(a => `<option value="${a}">${a} (${allCards.filter(c => c.area === a).length})</option>`).join('');
+  sel.onchange = () => render(sel.value);
+  render('');
+}
+
+// Posición FIJA por columna (sin simulación) — evita que los nodos "vuelen"
+function layoutNodes(cards) {
+  const counts = {1: 0, 2: 0, 3: 0, 4: 0};
+  cards.forEach(c => { counts[c.nivel_actual]++; });
+  return cards.map((c, i) => {
+    const col = Math.max(1, Math.min(c.nivel_actual, 4));
+    const rowIdx = counts[c.nivel_actual];
+    const total = counts[c.nivel_actual] || 1;
+    // Apilado vertical con separación clara
+    const rowH = 46;
+    return { ...c,
+      x: col / 5 + 0.05,
+      y: 70 + rowIdx * rowH };
+  });
+}
+
+function buildLinks(cards) {
+  const links = [];
+  const byTema = {}, byKey = {};
+  cards.forEach(c => {
+    if (!byTema[c.tema]) byTema[c.tema] = [];
+    byTema[c.tema].push(c);
+    const key = `${c.tema}-${c.nivel_actual}`;
+    if (!byKey[key]) byKey[key] = [];
+    byKey[key].push(c);
+  });
+
+  // EVOLUCIÓN: mismo tema, niveles consecutivos (1→2, 2→3, 3→4)
+  Object.values(byTema).forEach(tcards => {
+    const ord = [...tcards].sort((a, b) => a.nivel_actual - b.nivel_actual);
+    for (let i = 0; i < ord.length - 1; i++) {
+      links.push({ source: ord[i].id, target: ord[i+1].id, tipo: 'evolucion' });
+    }
+  });
+
+  // Sugerencias ocasionales (mismo nivel, mismo tema) — pocas
+  Object.values(byKey).forEach(grupo => {
+    for (let i = 0; i < grupo.length - 1; i++) {
+      if (Math.random() < 0.15) {
+        links.push({ source: grupo[i].id, target: grupo[i+1].id, tipo: 'sugerencia' });
+      }
+    }
+  });
+
+  return links;
+}
+
+function render(areaFilter) {
+  const cards = areaFilter ? allCards.filter(c => c.area === areaFilter) : allCards;
+  const width  = window.innerWidth;
+  const height = window.innerHeight;
+  const svg = d3.select('#graph');
+  svg.selectAll('*').remove();
+
+  const nodes = layoutNodes(cards);
+  const links = buildLinks(nodes);
+
+  // Labels de columna por nivel
+  [ {n:1, x:width*0.05,  label:'N1 — Teoría'},
+    {n:2, x:width*0.30,   label:'N2 — Práctica'},
+    {n:3, x:width*0.55,   label:'N3 — Troubleshooting'},
+    {n:4, x:width*0.80,   label:'N4 / 🚨 BOSS'},
+  ].forEach(({n,x,label}) => {
+    svg.append('text')
+      .attr('class', 'lvl-label')
+      .attr('x', x + 10)
+      .attr('y', 50)
+      .attr('text-anchor', 'middle')
+      .text(label);
+  });
+
+  const g = svg.append('g').attr('class', 'append-group');
+
+  // Enlace lines (simple line, sin tick)
+  g.selectAll('line.link')
+    .data(links)
+    .join('line')
+    .attr('class', 'link')
+    .attr('data-tipo', d => d.tipo)
+    .attr('x1', d => d.source.x)
+    .attr('y1', d => d.source.y)
+    .attr('x2', d => d.target.x)
+    .attr('y2', d => d.target.y)
+    .attr('stroke', d => d.tipo === 'sugerencia' ? '#3fb950' : '#58a6ff')
+    .attr('stroke-width', d => d.tipo === 'evolucion' ? 1.5 : 1)
+    .attr('stroke-opacity', 0.35)
+    .attr('marker-end', d => d.tipo ? `url(#arrow-${d.tipo})` : '');
+
+  // Nodo group
+  const node = g.selectAll('g.node')
+    .data(nodes)
+    .join('g')
+    .attr('class', 'node')
+    .attr('data-nivel', d => d.nivel_actual)
+    .attr('data-boss', d => d.es_boss)
+    .attr('data-practice', d => d.es_practice);
+
+  node.on('click', (event, d) => {
+    event.stopPropagation();
+    mostrarInfo(d);
+  });
+
+  node.on('dblclick', (event, d) => {
+    event.stopPropagation();
+    if (d.fuente) {
+      const url = `obsidian://open?vault=ObsidianVault&file=${encodeURIComponent(d.fuente)}`;
+      window.open(url, '_blank');
+    }
+  });
+
+  node.append('circle')
+    .attr('r', d => d.es_boss ? 16 : d.es_practice ? 13 : 10)
+    .attr('cx', d => d.x)
+    .attr('cy', d => d.y);
+
+  node.append('text')
+    .attr('class', 'lvl-label')
+    .attr('x', d => d.x + 14)
+    .attr('y', d => d.y + 4)
+    .attr('font-size', '10px')
+    .attr('fill', 'var(--foreground, #c9d1d9)')
+    .text(d => d.concepto.length > 20 ? d.concepto.slice(0, 20) + '…' : d.concepto);
+}
+
+function mostrarInfo(d) {
+  const info = document.getElementById('info');
+  document.getElementById('i-nombre').textContent = d.concepto;
+  document.getElementById('i-area').textContent = d.area;
+  document.getElementById('i-nivel').textContent = '⭐ Nivel ' + d.nivel_actual;
+  document.getElementById('i-aciertos').textContent = `✅ ${d.historial_aciertos || 0} aciertos — ${d.estado || 'activo'}`;
+  document.getElementById('i-tipo').innerHTML = d.es_boss
+    ? '<span class="boss">🚨 BOSS BATTLE (N4)</span>'
+    : d.es_practice
+      ? '&#128295; Práctica (comando)'
+      : '<span class="correct">&#129504; Teoría</span>';
+  document.getElementById('i-preview').textContent = d.pregunta ? d.pregunta.slice(0, 130) + (d.pregunta.length > 120 ? '…' : '') : '';
+  document.getElementById('i-fuente').textContent = d.fuente ? d.fuente.split(/[\\/]/).pop() : '';
+  info.classList.add('visible');
+}
+
+function closeInfo() {
+  document.getElementById('info').classList.remove('visible');
+}
+
+function abrirObsidianLink() {
+  if (window._currCard && window._currCard.fuente) {
+    window.open(`obsidian://open?vault=ObsidianVault&file=${encodeURIComponent(window._currCard.fuente)}`, '_blank');
+  }
+}
+
+function verStats() {
+  // Sexo por área
+  const data = {};
+  allCards.forEach(c => {
+    const area = c.area || 'Sin carpeta';
+    if (!data[area]) data[area] = { total: 0, n1: 0, n2: 0, n3: 0, n4: 0, aciertos: 0 };
+    data[area].total++;
+    data[area]['n' + Math.min(c.nivel_actual, 4)]++;
+    data[area].aciertos += (c.historial_aciertos || 0);
+  });
+
+  let msg = '📊 Stats por área:\n\n';
+  Object.entries(data).sort((a, b) => b[1].total - a[1].total).forEach(([area, s]) => {
+    const est = s.aciertos < s.n1 ? '🔴' : s.aciertos < s.total/2 ? '🟡' : '🟢';
+    msg += `${est} ${area}\n   Tarjetas: ${s.total} | Aciertos: ${s.aciertos}\n\n`;
+  });
+  alert(msg);
+}
+
+function abrirModoExamen() {
+  alert('🔥 MODO EXAMEN\n\n' +
+    'En Windows usa: evoflash_examen.bat\n\n' +
+    'Se evalúan todos los niveles N1→N4 sin poder saltar tarjeta.\n' +
+    'El LLM es más exigente: espera argumentación, no definiciones.\n\n' +
+    '¡Las preguntas residen en Obsidian/Questions!');
+}
+
+window.addEventListener('resize', () => render(document.getElementById('area-select').value));
+init();
+</script>
+</body>
+</html>

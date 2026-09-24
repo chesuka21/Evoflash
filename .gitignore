@@ -1,0 +1,37 @@
+# EvoFlash — Ignorar
+
+# Secrets
+.env
+config/perfil_estudio.json
+
+# Dependencias
+venv/
+__pycache__/
+*.pyc
+*.egg-info/
+
+# Datos volátiles (generados por export_data.py)
+web_dashboard/data.json
+
+# Logs y temporales
+*.log
+*.tmp
+*.bak
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+Thumbs.db
+.DS_Store
+nul
+*.lnk
+
+# Backups
+*_old.html
+*_viejo.html
+
+# Test outputs (dejan el directorio más limpio si se guardan)
+test_output.txt

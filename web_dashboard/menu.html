@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚡ EvoFlash — Centro de Control</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0d1117; color: #c9d1d9; min-height: 100vh; padding: 24px; }
+  .wrap { max-width: 860px; margin: 0 auto; }
+  h1 { text-align: center; color: #58a6ff; font-size: 2em; }
+  .subtitle { text-align: center; color: #8b949e; margin-bottom: 28px; }
+
+  .menu { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .menu-btn {
+    padding: 18px 12px; background: #161b22; border: 1px solid #30363d; border-radius: 10px;
+    cursor: pointer; text-align: center; transition: all .15s; user-select: none;
+  }
+  .menu-btn:hover { border-color: #58a6ff; transform: translateY(-2px); }
+  .menu-btn.activo { border-color: #58a6ff; background: #1c2733; box-shadow: 0 4px 16px rgba(88,166,255,.2); }
+  .menu-btn i { font-size: 26px; display: block; margin-bottom: 8px; }
+  .menu-btn .title { font-size: 12px; font-weight: 600; display: block; }
+  .menu-btn .sub { font-size: 10px; color: #8b949e; display: block; margin-top: 2px; }
+
+  .panel { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 20px; margin-top: 12px; }
+  .panel h2 { color: #58a6ff; font-size: 16px; margin-bottom: 14px; }
+  .panel.oculto { display: none; }
+
+  /* Tabla de stats */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #21262d; }
+  th { color: #8b949e; font-weight: 600; text-transform: uppercase; font-size: 10px; letter-spacing: .5px; }
+  tr:hover td { background: #1c2733; }
+
+  /* Temas */
+  .tema-row { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 8px; background: #0d1117; margin-bottom: 6px; }
+  .tema-row .nombre { flex: 1; }
+  .tema-row .n { color: #8b949e; font-size: 12px; }
+  .tema-row.pausada { opacity: .55; }
+  .btn-mini { padding: 5px 12px; border-radius: 6px; border: 1px solid #30363d; background: #21262d; cursor: pointer; color: #c9d1d9; font-size: 11px; }
+  .btn-mini:hover { border-color: #58a6ff; }
+  .btn-mini.warn { border-color: #d29922; color: #d29922; }
+  .btn-mini.ok { border-color: #3fb950; color: #3fb950; }
+
+  /* Examen */
+  .ex-form label { display: block; font-size: 12px; color: #8b949e; margin: 12px 0 4px; }
+  .ex-form input, .ex-form select { width: 100%; background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; padding: 8px; border-radius: 6px; font: inherit; }
+  .ex-checks { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+  .ex-checks label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #c9d1d9; margin: 0; cursor: pointer; }
+  .ex-item { background: #0d1117; border-left: 3px solid #3fb950; padding: 10px 12px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .ex-item .meta { font-size: 12px; color: #8b949e; }
+  .ex-item strong { color: #3fb950; }
+  .ex-item.urgente { border-left-color: #d29922; }
+  .ex-item.pasado { border-left-color: #f85149; opacity: .6; }
+
+  .btn { padding: 10px 18px; border-radius: 8px; border: none; background: #238636; color: white; font-weight: 600; cursor: pointer; font-size: 13px; }
+  .btn:hover { background: #2ea043; }
+  .btn.danger { background: #da3633; } .btn.danger:hover { background: #f85149; }
+  .muted { color: #8b949e; font-size: 12px; }
+  .estado { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 12px; font-size: 12px; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>⚡ EvoFlash</h1>
+  <p class="subtitle">Tu centro de control — conectado a Obsidian local</p>
+
+  <div class="menu">
+    <div class="menu-btn" onclick="abrirSeccion('jugar')">
+      <i>🎮</i><span class="title">Jugar</span>
+      <span class="sub">Sesión de tarjetas en el navegador</span>
+    </div>
+    <div class="menu-btn" onclick="abrirSeccion('skilltree')">
+      <i>🗺️</i><span class="title">Skill Tree</span>
+      <span class="sub">Mapa visual de tu progreso</span>
+    </div>
+    <div class="menu-btn" onclick="abrirSeccion('stats')">
+      <i>📊</i><span class="title">Stats por Área</span>
+      <span class="sub">Rendimiento y pendientes</span>
+    </div>
+    <div class="menu-btn" onclick="abrirSeccion('temas')">
+      <i>⏸️</i><span class="title">Pausar Temas</span>
+      <span class="sub">Activa/pausa carpetas del vault</span>
+    </div>
+    <div class="menu-btn" onclick="abrirSeccion('examenes')">
+      <i>📋</i><span class="title">Exámenes</span>
+      <span class="sub">Programa fecha y temas</span>
+    </div>
+  </div>
+
+  <!-- Panel: Jugar -->
+  <div class="panel oculto" id="p-jugar">
+    <h2>🎮 Jugar</h2>
+    <p class="muted">Esta es la sesión interactiva. Ve a la página de juego para empezar tu sesión de hoy.</p>
+    <p style="margin-top:14px"><a class="btn" href="index.html">▶ Ir al juego</a></p>
+    <div class="estado" id="pendientes-info">Cargando pendientes…</div>
+  </div>
+
+  <!-- Panel: Skill Tree -->
+  <div class="panel oculto" id="p-skilltree">
+    <h2>🗺️ Skill Tree</h2>
+    <p class="muted">Mapa visual D3 con tus tarjetas por nivel. Click en nodo = info, doble click = abrir en Obsidian.</p>
+    <p style="margin-top:14px"><a class="btn" href="skill_tree.html">▶ Abrir Skill Tree</a></p>
+  </div>
+
+  <!-- Panel: Stats -->
+  <div class="panel oculto" id="p-stats">
+    <h2>📊 Stats por Área</h2>
+    <div id="stats-cont">Cargando…</div>
+  </div>
+
+  <!-- Panel: Temas -->
+  <div class="panel oculto" id="p-temas">
+    <h2>⏸️ Pausar / Activar Temas</h2>
+    <p class="muted">Las áreas pausadas no aparecen en el juego ni en la ingesta.</p>
+    <div id="temas-cont" style="margin-top:12px">Cargando…</div>
+    <p style="margin-top:12px"><button class="btn-mini warn" onclick="resetTemas()">🔄 Reset (todas activas)</button></p>
+  </div>
+
+  <!-- Panel: Exámenes -->
+  <div class="panel oculto" id="p-examenes">
+    <h2>📋 Mis Exámenes</h2>
+    <div id="examenes-lista">Cargando…</div>
+    <h2 style="margin-top:22px">➕ Programar nuevo examen</h2>
+    <form class="ex-form" onsubmit="guardarExamen(event)">
+      <label>Nombre del examen</label>
+      <input id="ex-nombre" required placeholder="Ej: Parcial Redes">
+      <label>Fecha (YYYY-MM-DD)</label>
+      <input id="ex-fecha" type="date" required>
+      <label>Temas incluidos</label>
+      <div class="ex-checks" id="ex-areas"></div>
+      <label>Nivel máximo</label>
+      <select id="ex-nivel"><option value="2">N1–N2 (básico)</option><option value="3">N1–N3 (medio)</option><option value="4" selected>N1–N4 (completo)</option></select>
+      <label>Notas (opcional)</label>
+      <input id="ex-notas" placeholder="Ej: Repasar capa de transporte">
+      <p style="margin-top:14px"><button class="btn" type="submit">💾 Guardar examen</button></p>
+      <div id="ex-msg" class="estado" style="display:none"></div>
+    </form>
+  </div>
+</div>
+
+<script>
+function abrirSeccion(n) {
+  // Marcar botón activo
+  document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('activo'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.add('oculto'));
+  document.getElementById('p-' + n).classList.remove('oculto');
+  event && event.currentTarget && event.currentTarget.classList.add('activo');
+  if (n === 'stats') cargarStats();
+  if (n === 'temas') cargarTemas();
+  if (n === 'examenes') cargarExamenes();
+  if (n === 'jugar') cargarPendientes();
+}
+
+/* ─ Stats ─ */
+function cargarStats() {
+  fetch('/api/stats').then(r => r.json()).then(d => {
+    const rows = Object.entries(d.areas).sort((a,b) => b[1].total - a[1].total).map(([area, s]) =>
+      `<tr><td><b>${area}</b></td><td>${s.total}</td><td>${s.n1}</td><td>${s.n2}</td><td>${s.n3}</td><td>${s.n4}</td><td>${s.aciertos}</td><td>${s.bosses}</td></tr>`).join('');
+    document.getElementById('stats-cont').innerHTML =
+      `<table><tr><th>Área</th><th>Total</th><th>N1</th><th>N2</th><th>N3</th><th>N4</th><th>Aciertos</th><th>🔥 Boss</th></tr>${rows}</table>
+       <p class="muted" style="margin-top:10px">Total: ${d.total} tarjetas</p>`;
+  });
+}
+
+/* ─ Temas ─ */
+function cargarTemas() {
+  fetch('/api/temas').then(r => r.json()).then(d => {
+    const html = d.carpetas.map(c => `
+      <div class="tema-row ${c.pausada ? 'pausada' : ''}">
+        <span class="nombre">${c.pausada ? '⏸️' : '✅'} <b>${c.carpeta}</b></span>
+        <span class="n">${c.tarjetas} tarjeta(s)</span>
+        <button class="btn-mini ${c.pausada ? 'ok' : 'warn'}" onclick="toggleTema('${c.carpeta}', '${c.pausada ? 'activar' : 'pausar'}')">
+          ${c.pausada ? 'Activar' : 'Pausar'}
+        </button>
+      </div>`).join('');
+    document.getElementById('temas-cont').innerHTML = html || '<p class="muted">No se encontraron carpetas.</p>';
+  });
+}
+function toggleTema(carpeta, accion) {
+  fetch('/api/tema', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({carpeta, accion})})
+    .then(r => r.json()).then(() => cargarTemas());
+}
+function resetTemas() {
+  fetch('/api/tema', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({accion:'reset'})})
+    .then(() => cargarTemas());
+}
+
+/* ─ Exámenes ─ */
+function cargarExamenes() {
+  Promise.all([fetch('/api/examenes').then(r=>r.json()), fetch('/api/temas').then(r=>r.json())])
+  .then(([d, t]) => {
+    // Lista
+    const hoy = new Date().toISOString().slice(0,10);
+    const lista = (d.examenes || []).sort((a,b) => a.fecha.localeCompare(b.fecha)).map((ex, i) => {
+      const dias = Math.ceil((new Date(ex.fecha) - new Date(hoy)) / 86400000);
+      const cls = dias < 0 ? 'pasado' : dias <= 7 ? 'urgente' : '';
+      return `<div class="ex-item ${cls}">
+        <div><strong>${ex.nombre}</strong> <span class="meta">${ex.fecha} · ${dias < 0 ? 'pasó' : dias + 'd'}</span>
+        <br><span class="meta">${(ex.areas||[]).join(', ')} · ${ex.dificultad || ''}</span>
+        ${ex.notas ? `<br><span class="meta">📝 ${ex.notas}</span>` : ''}</div>
+        <button class="btn-mini danger" onclick="borrarExamen(${i})">🗑️</button>
+      </div>`;
+    }).join('');
+    document.getElementById('examenes-lista').innerHTML = lista || '<p class="muted">Sin exámenes programados.</p>';
+    // Checkboxes de áreas
+    document.getElementById('ex-areas').innerHTML = (t.carpetas || []).map(c =>
+      `<label><input type="checkbox" value="${c.carpeta}"> ${c.carpeta} (${c.tarjetas})</label>`).join('');
+  });
+}
+function guardarExamen(ev) {
+  ev.preventDefault();
+  const areas = [...document.querySelectorAll('#ex-areas input:checked')].map(i => i.value);
+  if (!areas.length) return alert('Selecciona al menos una área.');
+  fetch('/api/examenes').then(r => r.json()).then(d => {
+    d.examenes = d.examenes || [];
+    d.examenes.push({
+      nombre: document.getElementById('ex-nombre').value,
+      fecha: document.getElementById('ex-fecha').value,
+      areas,
+      dificultad: 'N1—N' + document.getElementById('ex-nivel').value,
+      notas: document.getElementById('ex-notas').value,
+    });
+    fetch('/api/examen_guardar', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(d)})
+      .then(r => r.json()).then(() => {
+        const m = document.getElementById('ex-msg');
+        m.style.display = 'block';
+        m.innerHTML = '✅ Examen guardado.';
+        document.getElementById('ex-nombre').value = '';
+        cargarExamenes();
+      });
+  });
+}
+function borrarExamen(i) {
+  if (!confirm('¿Eliminar este examen?')) return;
+  fetch('/api/examenes').then(r => r.json()).then(d => {
+    d.examenes.splice(i, 1);
+    fetch('/api/examen_guardar', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(d)})
+      .then(() => cargarExamenes());
+  });
+}
+
+/* ─ Pendientes ─ */
+function cargarPendientes() {
+  fetch('/api/pending').then(r => r.json()).then(d => {
+    document.getElementById('pendientes-info').innerHTML =
+      `🎯 ${d.cards.length} tarjetas pendientes hoy · Áreas activas: ${d.areas.join(', ')}`;
+  });
+}
+
+cargarPendientes(); // estado al abrir
+</script>
+</body>
+</html>
